@@ -1,7 +1,28 @@
-import React from 'react';
-import { Facebook, Twitter, Linkedin, Mail, Phone, MapPin } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Facebook, Twitter, Linkedin, Mail, Phone, MapPin, ArrowUp } from 'lucide-react';
 
 const Footer: React.FC = () => {
+     const [showToTop, setShowToTop] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 300) {
+        setShowToTop(true);
+      } else {
+        setShowToTop(false);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  };
   return (
     <footer className="bg-black text-white relative overflow-hidden">
       {/* Background decoration */}
@@ -97,6 +118,21 @@ const Footer: React.FC = () => {
           </p>
         </div>
       </div>
+
+
+         {/* Scroll to Top Button */}
+      {showToTop && (
+        <button
+          onClick={scrollToTop}
+          className="fixed bottom-8 right-8 w-14 h-14 bg-[#044341] hover:bg-[#066662] text-white rounded-full flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-110 active:scale-95 z-50 group"
+          aria-label="Scroll to top"
+        >
+          <ArrowUp 
+            size={24} 
+            className="group-hover:-translate-y-1 transition-transform duration-300" 
+          />
+        </button>
+      )}
     </footer>
   );
 };
