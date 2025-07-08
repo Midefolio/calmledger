@@ -20,7 +20,7 @@ const Hero = () => {
                 backgroundPosition: "center",
             }}
         >
-            <div className="w-full h-full flex items-center bg-black/40">
+            <div className="w-full h-full flex items-center bg-black/50">
                 <div className="w-full px-4 mt-20 sm:px-8 md:px-16 lg:px-24 xl:px-40 py-8 sm:py-12 md:py-16 lg:py-24 xl:py-32 flex flex-col justify-center">
                     {/* Main Heading */}
                     <h1 className="font-sans text-white text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl 2xl:text-7xl font-bold uppecase leading-tight sm:leading-tight md:leading-tight lg:leading-tight xl:leading-tight">

@@ -1,5 +1,5 @@
-import React from 'react';
-import { motion } from 'framer-motion';
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface PricingPlan {
   title: string;
@@ -13,8 +13,474 @@ interface PricingPlan {
   popular?: boolean;
 }
 
+interface BookingModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  selectedPlan?: PricingPlan;
+  billingCycle: 'session' | 'monthly' | 'yearly';
+  allPlans: PricingPlan[];
+}
+
+const BookingModal: React.FC<BookingModalProps> = ({ 
+  isOpen, 
+  onClose, 
+  selectedPlan, 
+  billingCycle, 
+  allPlans 
+}) => {
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    isAnonymous: false,
+    email: '',
+    story: '',
+    selectedPlan: selectedPlan?.title || '',
+    selectedBilling: billingCycle,
+    selectedCoin: 'USDC',
+    selectedChain: 'ethereum',
+    transactionHash: ''
+  });
+
+  const [errors, setErrors] = useState<{[key: string]: string}>({});
+
+  const cryptoAddresses = {
+    ethereum: {
+      USDC: '0x742d35Cc6634C0532925a3b8D4Eb695e6C4cDCC0',
+      USDT: '0x742d35Cc6634C0532925a3b8D4Eb695e6C4cDCC0'
+    },
+    solana: {
+      USDC: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
+      USDT: 'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB'
+    }
+  };
+
+  const handleInputChange = (field: string, value: string | boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+    
+    // Clear error when user starts typing
+    if (errors[field]) {
+      setErrors(prev => ({
+        ...prev,
+        [field]: ''
+      }));
+    }
+  };
+
+  const validateSlide1 = () => {
+    const newErrors: {[key: string]: string} = {};
+    
+    if (!formData.email) {
+      newErrors.email = 'Email is required';
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      newErrors.email = 'Please enter a valid email address';
+    }
+    
+    if (!formData.story.trim()) {
+      newErrors.story = 'Please describe your story';
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const validateSlide2 = () => {
+    const newErrors: {[key: string]: string} = {};
+    
+    if (!formData.selectedPlan) {
+      newErrors.selectedPlan = 'Please select a plan';
+    }
+    
+    if (!formData.transactionHash.trim()) {
+      newErrors.transactionHash = 'Transaction hash is required';
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleNext = () => {
+    if (validateSlide1()) {
+      setCurrentSlide(1);
+    }
+  };
+
+  const handleSubmit = () => {
+    if (validateSlide2()) {
+      // Handle form submission
+      console.log('Form submitted:', formData);
+      alert('Booking submitted successfully!');
+      onClose();
+    }
+  };
+
+  const getPriceForPlan = (plan: PricingPlan) => {
+    switch(formData.selectedBilling) {
+      case 'session':
+        return plan.sessionPrice;
+      case 'monthly':
+        return plan.monthlyPrice;
+      case 'yearly':
+        return plan.yearlyPrice;
+      default:
+        return plan.sessionPrice;
+    }
+  };
+
+  const getPriceSuffix = () => {
+    switch(formData.selectedBilling) {
+      case 'session':
+        return '/session';
+      case 'monthly':
+        return '/month';
+      case 'yearly':
+        return '/year';
+      default:
+        return '/session';
+    }
+  };
+
+  const selectedPlanData = allPlans.find(plan => plan.title === formData.selectedPlan);
+
+  if (!isOpen) return null;
+
+  return (
+    <AnimatePresence>
+      <div className="fixed inset-0 bg-black/45 bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.9 }}
+          className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+        >
+          {/* Header */}
+          <div className="border-b border-gray-200 p-6 flex justify-between items-center">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900">Book Your Session</h2>
+              <div className="flex items-center mt-2">
+                <div className={`w-8 h-1 rounded-full mr-2 ${currentSlide === 0 ? 'bg-[#044341]' : 'bg-gray-300'}`}></div>
+                <div className={`w-8 h-1 rounded-full ${currentSlide === 1 ? 'bg-[#044341]' : 'bg-gray-300'}`}></div>
+                <span className="ml-3 text-sm text-gray-600">
+                  Step {currentSlide + 1} of 2
+                </span>
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Content */}
+          <div className="p-6">
+            <AnimatePresence mode="wait">
+              {currentSlide === 0 && (
+                <motion.div
+                  key="slide1"
+                  initial={{ opacity: 0, x: 50 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -50 }}
+                  transition={{ duration: 0.3 }}
+                  className="space-y-6"
+                >
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Personal Information</h3>
+                    
+                    {/* Anonymous Option */}
+                    <div className="mb-4">
+                      <label className="flex items-center space-x-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={formData.isAnonymous}
+                          onChange={(e) => handleInputChange('isAnonymous', e.target.checked)}
+                          className="w-4 h-4 text-[#044341] border-gray-300 rounded focus:ring-[#044341] focus:ring-2"
+                        />
+                        <span className="text-sm text-gray-700 font-medium">I prefer to remain anonymous</span>
+                      </label>
+                    </div>
+
+                    {/* Name Fields */}
+                    {!formData.isAnonymous && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            First Name
+                          </label>
+                          <input
+                            type="text"
+                            value={formData.firstName}
+                            onChange={(e) => handleInputChange('firstName', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#044341] focus:border-transparent"
+                            placeholder="Enter your first name"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Last Name
+                          </label>
+                          <input
+                            type="text"
+                            value={formData.lastName}
+                            onChange={(e) => handleInputChange('lastName', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#044341] focus:border-transparent"
+                            placeholder="Enter your last name"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Email */}
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Email Address <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="email"
+                        value={formData.email}
+                        onChange={(e) => handleInputChange('email', e.target.value)}
+                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#044341] focus:border-transparent ${
+                          errors.email ? 'border-red-500' : 'border-gray-300'
+                        }`}
+                        placeholder="Enter your email address"
+                      />
+                      {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
+                    </div>
+
+                    {/* Story */}
+                    <div className="mb-6">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Describe Your Story <span className="text-red-500">*</span>
+                      </label>
+                      <textarea
+                        value={formData.story}
+                        onChange={(e) => handleInputChange('story', e.target.value)}
+                        rows={4}
+                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#044341] focus:border-transparent ${
+                          errors.story ? 'border-red-500' : 'border-gray-300'
+                        }`}
+                        placeholder="Tell us about your situation and what you're looking for help with..."
+                      />
+                      {errors.story && <p className="text-red-500 text-sm mt-1">{errors.story}</p>}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
+              {currentSlide === 1 && (
+                <motion.div
+                  key="slide2"
+                  initial={{ opacity: 0, x: 50 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -50 }}
+                  transition={{ duration: 0.3 }}
+                  className="space-y-6"
+                >
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Checkout & Payment</h3>
+                    
+                    {/* Plan Selection */}
+                    <div className="mb-6">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Select Plan <span className="text-red-500">*</span>
+                      </label>
+                      <div className="grid grid-cols-1 gap-3">
+                        {allPlans.map((plan) => (
+                          <div
+                            key={plan.title}
+                            className={`border rounded-lg p-4 cursor-pointer transition-all ${
+                              formData.selectedPlan === plan.title
+                                ? 'border-[#044341] bg-[#044341]/5'
+                                : 'border-gray-200 hover:border-gray-300'
+                            }`}
+                            onClick={() => handleInputChange('selectedPlan', plan.title)}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <h4 className="font-medium text-gray-900">{plan.title}</h4>
+                                <p className="text-sm text-gray-600">{plan.description}</p>
+                              </div>
+                              <div className="text-right">
+                                <span className="text-lg font-bold text-gray-900">
+                                  ${getPriceForPlan(plan)}
+                                </span>
+                                <span className="text-sm text-gray-600">{getPriceSuffix()}</span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      {errors.selectedPlan && <p className="text-red-500 text-sm mt-1">{errors.selectedPlan}</p>}
+                    </div>
+
+                    {/* Billing Cycle */}
+                    <div className="mb-6">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Billing Cycle
+                      </label>
+                      <div className="flex space-x-4">
+                        {['session', 'monthly', 'yearly'].map((cycle) => (
+                          <button
+                            key={cycle}
+                            onClick={() => handleInputChange('selectedBilling', cycle)}
+                            className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                              formData.selectedBilling === cycle
+                                ? 'bg-[#044341] text-white'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            }`}
+                          >
+                            {cycle.charAt(0).toUpperCase() + cycle.slice(1)}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Crypto Payment */}
+                    <div className="mb-6">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Payment Method
+                      </label>
+                      
+                      {/* Coin Selection */}
+                      <div className="mb-4">
+                        <label className="block text-sm text-gray-600 mb-1">Select Coin</label>
+                        <div className="flex space-x-4">
+                          {['USDC', 'USDT'].map((coin) => (
+                            <button
+                              key={coin}
+                              onClick={() => handleInputChange('selectedCoin', coin)}
+                              className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                                formData.selectedCoin === coin
+                                  ? 'bg-[#044341] text-white'
+                                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                              }`}
+                            >
+                              {coin}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Chain Selection */}
+                      <div className="mb-4">
+                        <label className="block text-sm text-gray-600 mb-1">Select Chain</label>
+                        <div className="flex space-x-4">
+                          {['ethereum', 'solana'].map((chain) => (
+                            <button
+                              key={chain}
+                              onClick={() => handleInputChange('selectedChain', chain)}
+                              className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                                formData.selectedChain === chain
+                                  ? 'bg-[#044341] text-white'
+                                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                              }`}
+                            >
+                              {chain.charAt(0).toUpperCase() + chain.slice(1)}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Payment Address */}
+                      <div className="mb-4">
+                        <label className="block text-sm text-gray-600 mb-1">
+                          Payment Address ({formData.selectedChain} - {formData.selectedCoin})
+                        </label>
+                        <div className="bg-gray-50 p-3 rounded-md">
+                          <code className="text-sm font-mono text-gray-800 break-all">
+                            {cryptoAddresses[formData.selectedChain as keyof typeof cryptoAddresses][formData.selectedCoin as 'USDC' | 'USDT']}
+                          </code>
+                        </div>
+                      </div>
+
+                      {/* Transaction Hash */}
+                      <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Transaction Hash <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.transactionHash}
+                          onChange={(e) => handleInputChange('transactionHash', e.target.value)}
+                          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#044341] focus:border-transparent ${
+                            errors.transactionHash ? 'border-red-500' : 'border-gray-300'
+                          }`}
+                          placeholder="Enter transaction hash after payment"
+                        />
+                        {errors.transactionHash && <p className="text-red-500 text-sm mt-1">{errors.transactionHash}</p>}
+                      </div>
+
+                      {/* Total Amount */}
+                      {selectedPlanData && (
+                        <div className="bg-[#044341]/5 p-4 rounded-md">
+                          <div className="flex justify-between items-center">
+                            <span className="font-medium text-gray-900">Total Amount:</span>
+                            <span className="text-xl font-bold text-[#044341]">
+                              ${getPriceForPlan(selectedPlanData)} {formData.selectedCoin}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Footer */}
+          <div className="border-t border-gray-200 p-6 flex justify-between">
+            <div className="flex space-x-3">
+              {currentSlide > 0 && (
+                <button
+                  onClick={() => setCurrentSlide(0)}
+                  className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+                >
+                  Back
+                </button>
+              )}
+            </div>
+            <div className="flex space-x-3">
+              <button
+                onClick={onClose}
+                className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+              >
+                Cancel
+              </button>
+              {currentSlide === 0 ? (
+                <button
+                  onClick={handleNext}
+                  className="px-6 py-2 bg-[#044341] text-white rounded-md hover:bg-[#044341]/90 transition-colors"
+                >
+                  Next
+                </button>
+              ) : (
+                <button
+                  onClick={handleSubmit}
+                  className="px-6 py-2 bg-[#044341] text-white rounded-md hover:bg-[#044341]/90 transition-colors"
+                >
+                  Submit Booking
+                </button>
+              )}
+            </div>
+          </div>
+        </motion.div>
+      </div>
+    </AnimatePresence>
+  );
+};
+
+// Updated PricingSection component with modal integration
 const PricingSection: React.FC = () => {
-  const [billingCycle, setBillingCycle] = React.useState<'session' | 'monthly' | 'yearly'>('session');
+  const [billingCycle, setBillingCycle] = useState<'session' | 'monthly' | 'yearly'>('session');
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<PricingPlan | undefined>();
 
   const pricingPlans: PricingPlan[] = [
     {
@@ -134,6 +600,11 @@ const PricingSection: React.FC = () => {
     }
   ];
 
+  const handleBookSession = (plan: PricingPlan) => {
+    setSelectedPlan(plan);
+    setModalOpen(true);
+  };
+
   const getPriceForCycle = (plan: PricingPlan) => {
     switch(billingCycle) {
       case 'session':
@@ -219,7 +690,7 @@ const PricingSection: React.FC = () => {
   const buttonVariants = {
     hover: {
       scale: 1.05,
-      backgroundColor: "#1d4ed8",
+      backgroundColor: "#033d3b",
       transition: {
         duration: 0.2
       }
@@ -239,21 +710,21 @@ const PricingSection: React.FC = () => {
       >
         {/* Header Section */}
         <motion.div 
-          className="text-cnter mb-16"
+          className="text-center mb-16"
           variants={cardVariants}
         > 
-           <div className="pb-3 text-[#044341] font-semibold text-sm uppercase tracking-wide">
-                OUR SERVICES
-              </div>
+          <div className="pb-3 text-[#044341] font-semibold text-sm uppercase tracking-wide">
+            OUR SERVICES
+          </div>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 leading-tight pb-5">
-           Start Well, <span className="text-[#044341]">Finish Strong</span>
+            Start Well, <span className="text-[#044341]">Finish Strong</span>
           </h2>
-          <p className="text-gray-600 text-lg max-w-3xl mx-ato mb-8">
+          <p className="text-gray-600 text-lg max-w-3xl mx-auto mb-8">
             Specialized therapy and support services designed for the unique challenges of blockchain technology, cryptocurrency, and decentralized innovation.
           </p>
           
           {/* Billing Cycle Toggle */}
-          <div className="flex justify-cente mb-8">
+          <div className="flex justify-center mb-8">
             <div className="bg-gray-100 rounded-lg p-1 flex">
               <button
                 onClick={() => setBillingCycle('session')}
@@ -298,22 +769,12 @@ const PricingSection: React.FC = () => {
           {pricingPlans.map((plan, index) => (
             <motion.div
               key={`${index}-${billingCycle}`}
-              className={`bg-white border-2 border-gray-200 rounded-lg shadow-lg overflow-hidden relative group
-              }`}
+              className="bg-white border-2 border-gray-200 rounded-lg shadow-lg overflow-hidden relative group"
               variants={cardVariants}
               whileHover="hover"
               initial="hidden"
               animate="visible"
             >
-              {/* Popular Badge */}
-              {/* {plan.popular && (
-                <div className="absolute top-4 left-1/2 transform z-300 -translate-x-1/2 -translate-y-1/2">
-                  <div className="bg-[#044341] text-white px-4 py-1 rounded-full text-sm font-semibold">
-                    Most Popular
-                  </div>
-                </div>
-              )} */}
-
               {/* Card Content */}
               <div className="p-6 text-center">
                 <h3 className="text-gray-800 font-semibold text-lg mb-4 tracking-wide">
@@ -351,9 +812,8 @@ const PricingSection: React.FC = () => {
                 </div>
                 
                 <motion.button
-                  className={`w-full bg-[#044341] text-white py-3 px-6 rounded-md font-semibold text-sm tracking-wide transition-all duration-300 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-[#044341] focus:ring-offset-2 ${
-                    billingCycle === 'yearly' ? 'animate-pulse' : ''
-                  }`}
+                  onClick={() => handleBookSession(plan)}
+                  className="w-full bg-[#044341] text-white py-3 px-6 rounded-md font-semibold text-sm tracking-wide transition-all duration-300 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-[#044341] focus:ring-offset-2"
                   variants={buttonVariants}
                   whileHover="hover"
                   whileTap="tap"
@@ -393,6 +853,15 @@ const PricingSection: React.FC = () => {
           </div>
         </motion.div>
       </motion.div>
+
+      {/* Booking Modal */}
+      <BookingModal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        selectedPlan={selectedPlan}
+        billingCycle={billingCycle}
+        allPlans={pricingPlans}
+      />
     </div>
   );
 };
