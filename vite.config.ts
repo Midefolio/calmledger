@@ -9,6 +9,9 @@ export default defineConfig({
     include: ['stream'],
     globals: { Buffer: true, process: true }
   })],
+    optimizeDeps: {
+    include: ['@solana/wallet-adapter-wallets'],
+  },
   server: {
     port: 3000
   },

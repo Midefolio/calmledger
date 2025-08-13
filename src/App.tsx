@@ -9,6 +9,7 @@ import {
 import { ToastContainer } from "react-toastify";
 import NotFound from "./notfound";
 import Hero from "./component/hero";
+import BookingSuccessPage from "./component/success";
 const App = () => {
 
   const router = createBrowserRouter(
@@ -16,6 +17,7 @@ const App = () => {
       <>
         <Route path="/" >
            <Route path="/"  element={<Hero/>}  />
+           <Route path="/success"  element={<BookingSuccessPage/>}  />
            <Route path="*" element={<NotFound/>} />
         </Route>
       </>
